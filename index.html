@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life.exe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main class="start-screen" id="startScreen">
+        <div class="content">
+            <p class="small-title">WELCOME TO</p>
+
+            <h1>LIFE<span>.EXE</span></h1>
+
+            <p class="subtitle">
+                En komplet unødvendig livssimulator.
+            </p>
+
+            <button id="startButton">START LIVET</button>
+        </div>
+    </main>
+
+    <main class="quiz-screen hidden" id="quizScreen">
+        <div class="quiz-container">
+            <p class="small-title">PERSONALITY TEST</p>
+
+            <div class="quiz-top">
+                <span id="questionNumber">SPØRGSMÅL 1 / 8</span>
+                <span id="progressText">0%</span>
+            </div>
+
+            <div class="progress-bar">
+                <div id="progressBar"></div>
+            </div>
+
+            <h2 id="questionText"></h2>
+
+            <div class="answers" id="answers"></div>
+        </div>
+    </main>
+
+    <main class="result-screen hidden" id="resultScreen">
+        <div class="result-container">
+            <p class="small-title">ANALYSIS COMPLETE</p>
+
+            <h2>Din karakter</h2>
+
+            <div class="character-card">
+                <p class="character-title" id="characterTitle"></p>
+
+                <div class="stats" id="stats"></div>
+            </div>
+
+            <button id="continueButton">FORTSÆT →</button>
+        </div>
+    </main>
+<main class="game-screen hidden" id="gameScreen">
+    <div class="game-container">
+
+        <div class="day-header">
+            <div>
+                <p class="small-title">LIFE.EXE</p>
+                <h2 id="dayNumber">DAG 1</h2>
+            </div>
+
+            <div class="money">
+                💰 <span id="money">500</span> kr.
+            </div>
+        </div>
+
+        <div class="game-stats">
+            <div>
+                <span>😊</span>
+                <span id="mood">50</span>
+            </div>
+
+            <div>
+                <span>⚡</span>
+                <span id="energy">50</span>
+            </div>
+
+            <div>
+                <span>🍀</span>
+                <span id="luck">50</span>
+            </div>
+        </div>
+
+        <div class="event-card">
+            <p class="event-time">LØRDAG · 11:42</p>
+
+            <h3 id="eventTitle">
+                Du vågner efter en overraskende god nats søvn.
+            </h3>
+
+            <p id="eventDescription">
+                Du har ingen planer i dag. Hele dagen ligger foran dig.
+                Hvad gør du?
+            </p>
+
+            <div class="event-choices" id="eventChoices"></div>
+        </div>
+
+    </div>
+</main>
+    <script src="script.js"></script>
+</body>
+</html>
