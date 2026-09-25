@@ -1,6 +1,7 @@
 const startScreen = document.getElementById("startScreen");
 const quizScreen = document.getElementById("quizScreen");
 const resultScreen = document.getElementById("resultScreen");
+const gameScreen = document.getElementById("gameScreen");
 
 const startButton = document.getElementById("startButton");
 const continueButton = document.getElementById("continueButton");
@@ -13,6 +14,16 @@ const answersContainer = document.getElementById("answers");
 
 const characterTitle = document.getElementById("characterTitle");
 const statsContainer = document.getElementById("stats");
+
+const dayNumber = document.getElementById("dayNumber");
+const moneyDisplay = document.getElementById("money");
+const moodDisplay = document.getElementById("mood");
+const energyDisplay = document.getElementById("energy");
+
+const luckDisplay = document.getElementById("luck");
+const eventTitle = document.getElementById("eventTitle");
+const eventDescription = document.getElementById("eventDescription");
+const eventChoices = document.getElementById("eventChoices");
 
 let currentQuestion = 0;
 
@@ -105,12 +116,22 @@ const questions = [
     }
 ];
 
+
+/* =========================
+   START QUIZ
+========================= */
+
 startButton.addEventListener("click", () => {
     startScreen.classList.add("hidden");
     quizScreen.classList.remove("hidden");
 
     showQuestion();
 });
+
+
+/* =========================
+   QUIZ
+========================= */
 
 function showQuestion() {
     const question = questions[currentQuestion];
@@ -142,6 +163,7 @@ function showQuestion() {
     });
 }
 
+
 function chooseAnswer(answer) {
     for (const stat in answer.stats) {
         stats[stat] += answer.stats[stat];
@@ -155,6 +177,11 @@ function chooseAnswer(answer) {
         showResult();
     }
 }
+
+
+/* =========================
+   CHARACTER RESULT
+========================= */
 
 function showResult() {
     quizScreen.classList.add("hidden");
@@ -191,6 +218,7 @@ function showResult() {
     }
 }
 
+
 function getCharacterTitle() {
     const highestStat = Object.keys(stats).reduce((highest, stat) => {
         return stats[stat] > stats[highest] ? stat : highest;
@@ -209,29 +237,328 @@ function getCharacterTitle() {
     return titles[highestStat];
 }
 
+
 function clamp(value) {
     return Math.max(0, Math.min(100, value));
 }
 
-const gameScreen = document.getElementById("gameScreen");
 
-const dayNumber = document.getElementById("dayNumber");
-const moneyDisplay = document.getElementById("money");
-const moodDisplay = document.getElementById("mood");
-const energyDisplay = document.getElementById("energy");
-const luckDisplay = document.getElementById("luck");
-
-const eventTitle = document.getElementById("eventTitle");
-const eventDescription = document.getElementById("eventDescription");
-const eventChoices = document.getElementById("eventChoices");
+/* =========================
+   GAME STATE
+========================= */
 
 let gameState = {
     day: 1,
     money: 500,
     mood: 50,
-    energy: 50,
-    luck: clamp(stats.luck)
+    energy: clamp(stats.energy),
+    luck: clamp(stats.luck),
+
+    gaming: clamp(stats.gaming),
+    music: clamp(stats.music),
+    social: clamp(stats.social),
+    impulsive: clamp(stats.impulsive),
+    creative: clamp(stats.creative),
+
+    flags: [],
+    usedEvents: []
 };
+
+
+/* =========================
+   EVENTS
+========================= */
+
+const events = [
+
+    {
+        id: "lost_money",
+        title: "💸 Du mister dine penge",
+        description:
+            "Du går ned ad gaden og opdager pludselig, at din pung ikke er i lommen.",
+        choices: [
+            {
+                text: "🔍 Gå tilbage og lede",
+                effects: { energy: -10, mood: -5 },
+                chance: 0.6,
+                success: {
+                    text: "Du finder den! Hvordan fanden havde du overset den?",
+                    effects: { mood: 20, luck: 5 }
+                },
+                fail: {
+                    text: "Ingenting. Pungen er væk.",
+                    effects: { mood: -15, money: -100 }
+                }
+            },
+            {
+                text: "🤷 Accepter det og gå videre",
+                effects: { mood: -5, impulsive: 5 }
+            },
+            {
+                text: "📱 Tjek om du har betalt med mobilen",
+                effects: { creative: 5, mood: 5 }
+            }
+        ]
+    },
+
+    {
+        id: "friend_message",
+        title: "📱 Din ven skriver",
+        description:
+            "Din telefon vibrerer. Din ven spørger, om du vil hænge ud senere.",
+        choices: [
+            {
+                text: "🔥 Selvfølgelig",
+                effects: { social: 10, mood: 15, energy: -10 }
+            },
+            {
+                text: "😎 Måske senere",
+                effects: { social: 5 }
+            },
+            {
+                text: "🛋️ Nej, jeg bliver hjemme",
+                effects: { energy: 10, mood: 5 }
+            },
+            {
+                text: "💀 Svarer ikke",
+                effects: { social: -5, mood: -5 }
+            }
+        ]
+    },
+
+    {
+        id: "random_200",
+        title: "💰 Du finder 200 kr.",
+        description:
+            "Der ligger en 200-kroneseddel på jorden foran dig. Ingen andre ser ud til at have opdaget den.",
+        choices: [
+            {
+                text: "💰 Tage pengene",
+                effects: { money: 200, impulsive: 10, luck: 5 },
+                flag: "found_money"
+            },
+            {
+                text: "👮 Aflevere dem",
+                effects: { mood: 10, social: 5 },
+                flag: "returned_money"
+            },
+            {
+                text: "🚶 Gå videre",
+                effects: { mood: 2 }
+            },
+            {
+                text: "👀 Vente lidt og se om nogen leder efter dem",
+                effects: { creative: 5, energy: -5 }
+            }
+        ]
+    },
+
+    {
+        id: "gaming",
+        title: "🎮 Du får lyst til at game",
+        description:
+            "Du har egentlig andre ting, du burde lave. Men CS2 starter næsten af sig selv.",
+        choices: [
+            {
+                text: "🎮 Spil et par games",
+                effects: { gaming: 10, mood: 15, energy: -15 }
+            },
+            {
+                text: "🏆 Gå all-in og grind",
+                effects: { gaming: 20, mood: 5, energy: -25 }
+            },
+            {
+                text: "❌ Lad være",
+                effects: { energy: 5 }
+            },
+            {
+                text: "📱 Se highlights i stedet",
+                effects: { gaming: 5, mood: 5, energy: -5 }
+            }
+        ]
+    },
+
+    {
+        id: "music",
+        title: "🎵 Den perfekte sang",
+        description:
+            "Du finder en sang, du ikke har hørt i lang tid. Den rammer præcis den rigtige vibe.",
+        choices: [
+            {
+                text: "🔊 Skru helt op",
+                effects: { music: 15, mood: 20, energy: 5 }
+            },
+            {
+                text: "🎧 Læg dig bare og lyt",
+                effects: { music: 10, mood: 15, energy: 10 }
+            },
+            {
+                text: "📱 Lav en ny playlist",
+                effects: { music: 15, creative: 10 }
+            },
+            {
+                text: "➡️ Skip",
+                effects: { music: -5 }
+            }
+        ]
+    },
+
+    {
+        id: "late_night_idea",
+        title: "💡 En genial idé",
+        description:
+            "Klokken er 01:37. Du får pludselig en idé, som du er 100% sikker på kan blive genial.",
+        choices: [
+            {
+                text: "🚀 Gå i gang med det samme",
+                effects: { creative: 20, energy: -15 },
+                flag: "midnight_creator"
+            },
+            {
+                text: "📝 Skriv idéen ned",
+                effects: { creative: 15 }
+            },
+            {
+                text: "😴 Sov videre",
+                effects: { energy: 15 }
+            },
+            {
+                text: "📱 Send idéen til en ven",
+                effects: { creative: 5, social: 10 }
+            }
+        ]
+    },
+
+    {
+        id: "bad_weather",
+        title: "🌧️ Vejret er helt elendigt",
+        description:
+            "Du havde planer om at tage ud. Så begynder det selvfølgelig at regne.",
+        choices: [
+            {
+                text: "🌧️ Gå ud alligevel",
+                effects: { mood: 5, energy: -10, impulsive: 10 }
+            },
+            {
+                text: "🛋️ Bliv hjemme",
+                effects: { mood: 10, energy: 10 }
+            },
+            {
+                text: "🎮 Perfekt gaming-vejr",
+                effects: { gaming: 10, mood: 10 }
+            },
+            {
+                text: "🎵 Musik + regn",
+                effects: { music: 10, mood: 15 }
+            }
+        ]
+    },
+
+    {
+        id: "random_purchase",
+        title: "🛍️ Du ser noget, du virkelig vil have",
+        description:
+            "Du går forbi en butik og ser noget, du har tænkt på at købe i lang tid.",
+        choices: [
+            {
+                text: "💳 Køb det",
+                effects: { money: -150, mood: 20, impulsive: 10 }
+            },
+            {
+                text: "🤔 Vent med at købe det",
+                effects: { mood: 2, creative: 5 }
+            },
+            {
+                text: "💀 Køb noget endnu dyrere",
+                effects: { money: -300, mood: 25, impulsive: 20 }
+            },
+            {
+                text: "🚶 Gå væk",
+                effects: { energy: 5 }
+            }
+        ]
+    },
+
+    {
+        id: "sleep",
+        title: "😴 Du er helt færdig",
+        description:
+            "Du kan mærke, at du næsten ikke har mere energi tilbage.",
+        choices: [
+            {
+                text: "🛌 Gå tidligt i seng",
+                effects: { energy: 25, mood: 10 }
+            },
+            {
+                text: "🎮 Bare ét game mere",
+                effects: { gaming: 5, energy: -15, mood: 5 }
+            },
+            {
+                text: "📱 Scrolle lidt",
+                effects: { energy: -5, mood: 5 }
+            },
+            {
+                text: "☕ Finde noget at lave",
+                effects: { energy: -10, mood: 10, impulsive: 5 }
+            }
+        ]
+    },
+
+    {
+        id: "challenge",
+        title: "🔥 En udfordring",
+        description:
+            "En ven udfordrer dig til noget, du aldrig har prøvet før.",
+        choices: [
+            {
+                text: "🔥 JA",
+                effects: { mood: 20, impulsive: 20, energy: -10 }
+            },
+            {
+                text: "🤔 Hvad går det ud på?",
+                effects: { creative: 5, social: 5 }
+            },
+            {
+                text: "😐 Nej tak",
+                effects: { energy: 5 }
+            },
+            {
+                text: "😂 Udfordr ham tilbage",
+                effects: { social: 10, impulsive: 15 }
+            }
+        ]
+    },
+
+    {
+        id: "creative_project",
+        title: "🧠 Du får lyst til at lave noget",
+        description:
+            "Du har pludselig lyst til at starte på et projekt. Du ved ikke helt hvad endnu.",
+        choices: [
+            {
+                text: "💻 Lav en hjemmeside",
+                effects: { creative: 20, energy: -15 }
+            },
+            {
+                text: "🎵 Lav noget musik",
+                effects: { creative: 15, music: 10, energy: -10 }
+            },
+            {
+                text: "✏️ Tegn eller skriv noget",
+                effects: { creative: 15, mood: 10 }
+            },
+            {
+                text: "🤷 Drop idéen",
+                effects: { energy: 5 }
+            }
+        ]
+    }
+];
+
+
+/* =========================
+   START GAME
+========================= */
 
 continueButton.addEventListener("click", () => {
     resultScreen.classList.add("hidden");
@@ -240,58 +567,46 @@ continueButton.addEventListener("click", () => {
     showEvent();
 });
 
-function updateGameStats() {
-    dayNumber.textContent = `DAG ${gameState.day}`;
-    moneyDisplay.textContent = gameState.money;
-    moodDisplay.textContent = clamp(gameState.mood);
-    energyDisplay.textContent = clamp(gameState.energy);
-    luckDisplay.textContent = clamp(gameState.luck);
+
+/* =========================
+   EVENT SYSTEM
+========================= */
+
+function getAvailableEvents() {
+    return events.filter(event => {
+        return !gameState.usedEvents.includes(event.id);
+    });
 }
+
+
+function getRandomEvent() {
+    const availableEvents = getAvailableEvents();
+
+    if (availableEvents.length === 0) {
+        gameState.usedEvents = [];
+        return events[Math.floor(Math.random() * events.length)];
+    }
+
+    return availableEvents[
+        Math.floor(Math.random() * availableEvents.length)
+    ];
+}
+
 
 function showEvent() {
     updateGameStats();
 
+    const event = getRandomEvent();
+
+    gameState.currentEvent = event;
+    gameState.usedEvents.push(event.id);
+
+    eventTitle.textContent = event.title;
+    eventDescription.textContent = event.description;
+
     eventChoices.innerHTML = "";
 
-    const choices = [
-        {
-            text: "🎮 Spil CS2",
-            effect: {
-                mood: 15,
-                energy: -10
-            }
-        },
-        {
-            text: "🎵 Sæt musik på og chill",
-            effect: {
-                mood: 10,
-                energy: 10
-            }
-        },
-        {
-            text: "🚲 Tag ud på cyklen",
-            effect: {
-                mood: 15,
-                energy: -5
-            }
-        },
-        {
-            text: "👥 Skriv til en ven",
-            effect: {
-                mood: 10,
-                energy: 0
-            }
-        },
-        {
-            text: "🛋️ Bliv liggende",
-            effect: {
-                mood: 5,
-                energy: 15
-            }
-        }
-    ];
-
-    choices.forEach((choice) => {
+    event.choices.forEach((choice) => {
         const button = document.createElement("button");
 
         button.textContent = choice.text;
@@ -304,29 +619,123 @@ function showEvent() {
     });
 }
 
+
+/* =========================
+   CHOICE SYSTEM
+========================= */
+
 function makeChoice(choice) {
-    gameState.mood += choice.effect.mood;
-    gameState.energy += choice.effect.energy;
+    applyEffects(choice.effects);
+
+    if (choice.flag && !gameState.flags.includes(choice.flag)) {
+        gameState.flags.push(choice.flag);
+    }
+
+    if (choice.chance) {
+        const roll = Math.random();
+
+        if (roll < choice.chance) {
+            if (choice.success) {
+                applyEffects(choice.success.effects);
+
+                if (choice.success.flag) {
+                    gameState.flags.push(choice.success.flag);
+                }
+
+                showChoiceResult(
+                    choice.success.text,
+                    choice.success.effects
+                );
+
+                return;
+            }
+        } else {
+            if (choice.fail) {
+                applyEffects(choice.fail.effects);
+
+                showChoiceResult(
+                    choice.fail.text,
+                    choice.fail.effects
+                );
+
+                return;
+            }
+        }
+    }
+
+    nextDay();
+}
+
+
+/* =========================
+   EFFECTS
+========================= */
+
+function applyEffects(effects) {
+    for (const stat in effects) {
+        if (gameState[stat] !== undefined) {
+            gameState[stat] += effects[stat];
+        }
+    }
 
     gameState.mood = clamp(gameState.mood);
     gameState.energy = clamp(gameState.energy);
+    gameState.luck = clamp(gameState.luck);
 
-    gameState.day++;
+    gameState.gaming = clamp(gameState.gaming);
+    gameState.music = clamp(gameState.music);
+    gameState.social = clamp(gameState.social);
+    gameState.impulsive = clamp(gameState.impulsive);
+    gameState.creative = clamp(gameState.creative);
 
-    showNextDay();
+    if (gameState.money < 0) {
+        gameState.money = 0;
+    }
 }
 
-function showNextDay() {
+
+/* =========================
+   RESULT AFTER CHOICE
+========================= */
+
+function showChoiceResult(text) {
     eventChoices.innerHTML = "";
 
-    eventTitle.textContent = `Dag ${gameState.day} begynder...`;
+    eventTitle.textContent = "📌 Konsekvens";
 
-    eventDescription.textContent =
-        "Du vågner op og aner ikke, hvad dagen har i vente.";
+    eventDescription.textContent = text;
 
     const button = document.createElement("button");
 
-    button.textContent = "FORTSÆT";
+    button.textContent = "NÆSTE DAG →";
+
+    button.addEventListener("click", () => {
+        nextDay();
+    });
+
+    eventChoices.appendChild(button);
+
+    updateGameStats();
+}
+
+
+/* =========================
+   NEXT DAY
+========================= */
+
+function nextDay() {
+    gameState.day++;
+
+    eventTitle.textContent = `🌅 DAG ${gameState.day}`;
+
+    eventDescription.textContent =
+        "En ny dag begynder. Du aner ikke, hvad der kommer til at ske.";
+
+    eventChoices.innerHTML = "";
+
+    const button = document.createElement("button");
+
+    button.textContent = "SE HVAD DER SKER →";
 
     button.addEventListener("click", () => {
         showEvent();
@@ -335,4 +744,18 @@ function showNextDay() {
     eventChoices.appendChild(button);
 
     updateGameStats();
+}
+
+
+/* =========================
+   UPDATE UI
+========================= */
+
+function updateGameStats() {
+    dayNumber.textContent = `DAG ${gameState.day}`;
+
+    moneyDisplay.textContent = gameState.money;
+    moodDisplay.textContent = gameState.mood;
+    energyDisplay.textContent = gameState.energy;
+    luckDisplay.textContent = gameState.luck;
 }
